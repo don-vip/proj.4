@@ -71,6 +71,7 @@ struct pj_opaque {
     double  c;
     double  dd;
     double  n2;
+    double  lam0;
     double  rho0;
     double  rho;
     double  phi1;
@@ -97,6 +98,7 @@ static void *destructor (PJ *P, int errlev) {                        /* Destruct
 
 static XY e_forward (LP lp, PJ *P) {   /* Ellipsoid/spheroid, forward */
     XY xy = {0.0,0.0};
+    double theta;
     struct pj_opaque *Q = P->opaque;
     Q->rho = Q->c - (Q->ellips ? Q->n * pj_qsfn(sin(lp.phi), P->e, P->one_es) : Q->n2 * sin(lp.phi));;
     if (Q->rho < 0.) {
@@ -104,8 +106,9 @@ static XY e_forward (LP lp, PJ *P) {   /* Ellipsoid/spheroid, forward */
         return xy;
     }
     Q->rho = Q->dd * sqrt(Q->rho);
-    xy.x = Q->rho * sin( lp.lam *= Q->n );
-    xy.y = Q->rho0 - Q->rho * cos(lp.lam);
+    theta = Q->n * (lp.lam - Q->lam0);
+    xy.x = Q->rho * sin(theta);
+    xy.y = Q->rho0 - Q->rho * cos(theta);
     return xy;
 }
 
@@ -133,7 +136,7 @@ static LP e_inverse (XY xy, PJ *P) {   /* Ellipsoid/spheroid, inverse */
             lp.phi = asin(lp.phi);
         else
             lp.phi = lp.phi < 0. ? -M_HALFPI : M_HALFPI;
-        lp.lam = atan2(xy.x, xy.y) / Q->n;
+        lp.lam = Q->lam0 + atan2(xy.x, xy.y) / Q->n;
     } else {
         lp.lam = 0.;
         lp.phi = Q->n > 0. ? M_HALFPI : - M_HALFPI;
